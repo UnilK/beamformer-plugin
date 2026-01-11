@@ -1,0 +1,1 @@
+./build/BeamFormerPlugin_artefacts/RelWithDebInfo/Standalone/BeamFormerPlugin
