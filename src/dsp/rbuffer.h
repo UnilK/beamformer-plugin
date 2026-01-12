@@ -4,8 +4,6 @@
 #include <cstring>
 #include <cassert>
 
-namespace nonemap {
-
 template<typename T> class rbuffer {
 
 public:
@@ -66,6 +64,3 @@ private:
     std::vector<T> buffer;
 
 };
-
-}
-

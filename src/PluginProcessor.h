@@ -2,13 +2,20 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 
+#include "State.h"
+
 //==============================================================================
-class PluginAudioProcessor final : public juce::AudioProcessor
+class PluginAudioProcessor final : public juce::AudioProcessor, public juce::Timer
 {
 public:
     //==============================================================================
     PluginAudioProcessor();
     ~PluginAudioProcessor() override;
+
+    juce::SpinLock lock;
+    State state, editorState;
+    MicFilters micf, editorMicf;
+    void timerCallback() override;
 
     //==============================================================================
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
