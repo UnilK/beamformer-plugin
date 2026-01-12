@@ -1,38 +1,41 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
-#include "common/Style.h"
+#include "ui/Style.h"
+#include "AcousticView.h"
+
+#include <iostream>
 
 //==============================================================================
-AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAudioProcessor& p)
+PluginEditor::PluginEditor (PluginAudioProcessor& p)
     : AudioProcessorEditor (&p), processorRef (p)
 {
-    juce::ignoreUnused (processorRef);
-    // Make sure that before the constructor has finished, you've set the
-    // editor's size to whatever you need it to be.
-    setSize (1280, 720);
-
     style = std::make_unique<Style>();
+    view = std::make_unique<AcousticView>(*this);
     juce::LookAndFeel::setDefaultLookAndFeel(style.get());
     setLookAndFeel(style.get());
+
+    setSize (1280, 720);
+    setResizable(true, true);
+
+    addAndMakeVisible(*view);
 }
 
-AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor()
+PluginEditor::~PluginEditor()
 {
+    juce::LookAndFeel::setDefaultLookAndFeel(nullptr);
+    setLookAndFeel(nullptr);
 }
 
 //==============================================================================
-void AudioPluginAudioProcessorEditor::paint (juce::Graphics& g)
+void PluginEditor::paint (juce::Graphics& g)
 {
-    // (Our component is opaque, so we must completely fill the background with a solid colour)
-    g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
-
-    g.setColour (juce::Colours::white);
-    g.setFont (15.0f);
-    g.drawFittedText ("Hello World!", getLocalBounds(), juce::Justification::centred, 1);
+    g.fillAll (palette.bg);
 }
 
-void AudioPluginAudioProcessorEditor::resized()
+void PluginEditor::resized()
 {
-    // This is generally where you'll want to lay out the positions of any
-    // subcomponents in your editor..
+    juce::FlexBox fb;
+    fb.items.add(juce::FlexItem(*view).withFlex(1,1,0));
+
+    fb.performLayout(getLocalBounds());
 }

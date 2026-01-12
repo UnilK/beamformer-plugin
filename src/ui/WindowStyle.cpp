@@ -1,9 +1,9 @@
 #include "Style.h"
 
 void Style::drawResizableWindowBorder(
-    juce::Graphics &g, int w, int h,
-    const juce::BorderSize<int> &border,
-    juce::ResizableWindow &window)
+    juce::Graphics &g, [[maybe_unused]]  int w, [[maybe_unused]]  int h,
+    [[maybe_unused]] const juce::BorderSize<int> &border,
+    [[maybe_unused]] juce::ResizableWindow &window)
 {
     g.fillAll(palette.bg);
 }
@@ -99,9 +99,9 @@ juce::Button* Style::createDocumentWindowButton(int buttonType){
 }
 
 void Style::drawDocumentWindowTitleBar (
-    juce::DocumentWindow& window, juce::Graphics& g,
-    int w, int h, int titleSpaceX, int titleSpaceW,
-    const juce::Image* icon, bool drawTitleTextOnLeft)
+    [[maybe_unused]]  juce::DocumentWindow& window, juce::Graphics& g,
+    int w, int h, [[maybe_unused]]  int titleSpaceX, [[maybe_unused]]  int titleSpaceW,
+    [[maybe_unused]]  const juce::Image* icon, [[maybe_unused]]  bool drawTitleTextOnLeft)
 {
     using namespace juce;
 

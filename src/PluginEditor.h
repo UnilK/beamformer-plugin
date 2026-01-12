@@ -3,15 +3,17 @@
 #include "PluginProcessor.h"
 
 class Style;
+class AcousticView;
 
 //==============================================================================
-class AudioPluginAudioProcessorEditor final : public juce::AudioProcessorEditor
+class PluginEditor final : public juce::AudioProcessorEditor
 {
 public:
-    explicit AudioPluginAudioProcessorEditor (AudioPluginAudioProcessor&);
-    ~AudioPluginAudioProcessorEditor() override;
+    explicit PluginEditor (PluginAudioProcessor&);
+    ~PluginEditor() override;
 
     std::unique_ptr<Style> style;
+    std::unique_ptr<AcousticView> view;
 
     //==============================================================================
     void paint (juce::Graphics&) override;
@@ -20,7 +22,9 @@ public:
 private:
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
-    AudioPluginAudioProcessor& processorRef;
+    PluginAudioProcessor& processorRef;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessorEditor)
+    juce::Slider finePitchSlider;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginEditor)
 };

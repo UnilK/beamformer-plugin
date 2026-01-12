@@ -73,6 +73,7 @@ target_sources(BeamFormerPlugin
     PRIVATE
         src/PluginEditor.cpp
         src/PluginProcessor.cpp
+        src/AcousticView.cpp
         src/ui/Style.cpp
         src/ui/WindowStyle.cpp
         )
@@ -98,7 +99,7 @@ target_compile_definitions(BeamFormerPlugin
 # static library. These source files can be of any kind (wav data, images, fonts, icons etc.).
 # Conversion to binary-data will happen when your target is built.
 
-juce_add_binary_data(UbuntuMonoR_ttf SOURCES src/common/UbuntuMono-R.ttf)
+juce_add_binary_data(UbuntuMonoR_ttf SOURCES src/ui/UbuntuMono-R.ttf)
 
 # `target_link_libraries` links libraries and JUCE modules to other libraries or executables. Here,
 # we're linking our executable target to the `juce::juce_audio_utils` module. Inter-module
