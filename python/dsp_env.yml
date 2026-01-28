@@ -1,0 +1,18 @@
+name: dsp_env
+
+channels:
+  - conda-forge
+  - defaults
+  
+dependencies:
+  - python=3.14.2
+  - pip=25.3
+  - pip:
+    - pyfar
+    - sounddevice
+    - watermark
+    - jupyterlab
+    - ipywidgets
+    - ipympl
+    - pooch
+    - pillow
