@@ -2,7 +2,10 @@
 
 #include <JuceHeader.h>
 
+#include "ui/Graph.h"
+
 class PluginEditor;
+struct State;
 
 class AcousticView  : public juce::Component
 {
@@ -12,11 +15,13 @@ public:
     ~AcousticView() override;
 
     PluginEditor& root;
+    State& state;
 
     void paint (juce::Graphics&) override;
     void resized() override;
 
-    juce::Slider pitchMinSlider;
+    bool dragging = false;
+    Graph graph;
 
 private:
 

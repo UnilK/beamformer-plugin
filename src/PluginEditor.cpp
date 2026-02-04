@@ -2,12 +2,13 @@
 #include "PluginEditor.h"
 #include "ui/Style.h"
 #include "AcousticView.h"
+#include "State.h"
 
 #include <iostream>
 
 //==============================================================================
 PluginEditor::PluginEditor (PluginAudioProcessor& p)
-    : AudioProcessorEditor (&p), processorRef (p)
+    : AudioProcessorEditor (&p), processorRef (p), state(p.editorState)
 {
     style = std::make_unique<Style>();
     view = std::make_unique<AcousticView>(*this);

@@ -4,6 +4,7 @@
 
 class Style;
 class AcousticView;
+struct State;
 
 //==============================================================================
 class PluginEditor final : public juce::AudioProcessorEditor
@@ -11,6 +12,8 @@ class PluginEditor final : public juce::AudioProcessorEditor
 public:
     explicit PluginEditor (PluginAudioProcessor&);
     ~PluginEditor() override;
+
+    State& state;
 
     std::unique_ptr<Style> style;
     std::unique_ptr<AcousticView> view;

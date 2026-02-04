@@ -3,6 +3,7 @@
 #include "dsp/rbuffer.h"
 
 #include <vector>
+#include <random>
 
 //==============================================================================
 
@@ -134,6 +135,11 @@ bool PluginAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) c
   #endif
 }
 
+static float rnd(const float &d){
+    static std::mt19937 rng32;
+    return std::uniform_real_distribution<float>(-d, d)(rng32);
+}
+
 void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
                                               juce::MidiBuffer& midiMessages)
 {
@@ -143,31 +149,64 @@ void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     juce::ScopedNoDenormals noDenormals;
 
     lock.enter();
-    State s = state;
-    static State ps = state;
+    State newState = state;
+    static State oldState = state;
     lock.exit();
 
     MicFilters mf = micf;
     int fs = (int)this->getSampleRate();
-    int mics = (int)s.micPositions.size();
-    int maxs = (int)(s.maxd / s.c * fs) + 1;
-    static std::vector<rbuffer<float> > x(mics);
+    int mics = (int)newState.micPositions.size();
+    int maxs = (int)(newState.maxd / newState.c * fs) + 1;
+    static std::vector<rbuffer<float> > micSamples(mics);
 
     int N = 12;
 
-    x.resize(mics);
-    for(auto &r : x){
+    micSamples.resize(mics);
+    for(auto &r : micSamples){
         r.resize(maxs+3*N, 0.0f);
         r.set_offset(N);
     }
 
-    // TODO: apply target sound and noise to mics.
+    const float pi = (float)(std::atan(1) * 4);
+    const float pin = (float)(pi / N);
+    auto sinc = [&](float x){ return x*x < 1e-12f ? 1.0f : sin(x * pi) / (x * pi); };
+    auto impulse = [&](float x){ return (0.5f + 0.5f * cos(x * pin)) * sinc(x); };
+    auto write_sample = [&](float *x, float p, float s){
+        int l = (int)std::ceil(p-N);
+        int r = (int)std::floor(p+N);
+        for(int i=l; i<=r; i++) x[i] += s * impulse(i-p);
+    };
+
+    static std::vector<rbuffer<float> > outSamples(2);
+    static std::vector<vec3> outPositions{{0, -0.1f, 0}, {0, 0.1f, 0}};
+    for(auto &r : outSamples){
+        r.resize(maxs+3*N, 0.0f);
+        r.set_offset(N);
+    }
+
+    int n = buffer.getNumSamples();
+    for(int i=0; i<n; i++){
+
+        float d = i / (float)n;
+        vec3 targetPos = oldState.targetPosition * (1.0f - d) + newState.targetPosition * d;
+        float targetSample = rnd(1.0f);
+
+        for(auto &r : outSamples) r.push(0);
+        for(int j=0; j<2; j++){
+            float dist = std::min(newState.maxd, (outPositions[j]-targetPos).abs());
+            write_sample(&outSamples[j][0], dist / newState.c * fs, targetSample / (1.0f + dist));
+        }
+
+        for(int j=0; j<std::min<int>(2, buffer.getNumChannels()); j++){
+            buffer.getWritePointer(j)[i] = outSamples[j][0];
+        }
+    }
 
     lock.enter();
     micf = mf;
     lock.exit();
 
-    ps = s;
+    oldState = newState;
 }
 
 //==============================================================================

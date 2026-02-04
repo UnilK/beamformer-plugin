@@ -71,9 +71,10 @@ juce_generate_juce_header(BeamFormerPlugin)
 
 target_sources(BeamFormerPlugin
     PRIVATE
+        src/AcousticView.cpp
         src/PluginEditor.cpp
         src/PluginProcessor.cpp
-        src/AcousticView.cpp
+        src/ui/Graph.cpp
         src/ui/Style.cpp
         src/ui/WindowStyle.cpp
         )

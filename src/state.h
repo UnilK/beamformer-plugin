@@ -11,13 +11,21 @@ struct vec3 {
         return {x-rhs.x, y-rhs.y, z-rhs.z};
     }
 
+    vec3 operator+(const vec3& rhs){
+        return {x+rhs.x, y+rhs.y, z+rhs.z};
+    }
+
+    vec3 operator*(const float& s){
+        return {x*s, y*s, z*s};
+    }
+
     float abs(){
         return std::sqrt(x*x+y*y+z*z);
     }
 };
 
 struct State {
-    vec3 targetPosition;
+    vec3 targetPosition{1, 0, 0};
     std::vector<float> micFrequencies;
     std::vector<float> micDecays;
     std::vector<vec3> micPositions;
