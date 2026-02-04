@@ -37,7 +37,6 @@ AcousticView::AcousticView(PluginEditor& r) : root(r), state(r.state)
         const float r = 20;
         g.fillAll (palette.bg);
         g.setColour(palette.lwhite);
-        std::cerr << graph.canvas_x(state.targetPosition.y) << ' '<< graph.canvas_y(state.targetPosition.z) << ' ' << r << '\n';
         g.drawEllipse(graph.canvas_x(state.targetPosition.y), graph.canvas_y(state.targetPosition.z), r, r, 3);
     };
 }

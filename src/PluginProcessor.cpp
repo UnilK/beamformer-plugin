@@ -1,6 +1,7 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 #include "dsp/rbuffer.h"
+#include "constants.h"
 
 #include <vector>
 #include <random>
@@ -159,7 +160,7 @@ void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     int maxs = (int)(newState.maxd / newState.c * fs) + 1;
     static std::vector<rbuffer<float> > micSamples(mics);
 
-    int N = 12;
+    constexpr int N = 12;
 
     micSamples.resize(mics);
     for(auto &r : micSamples){
@@ -167,9 +168,8 @@ void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         r.set_offset(N);
     }
 
-    const float pi = (float)(std::atan(1) * 4);
-    const float pin = (float)(pi / N);
-    auto sinc = [&](float x){ return x*x < 1e-12f ? 1.0f : sin(x * pi) / (x * pi); };
+    constexpr float pin = (float)(PIF / N);
+    auto sinc = [&](float x){ return x*x < 1e-12f ? 1.0f : sin(x * PIF) / (x * PIF); };
     auto impulse = [&](float x){ return (0.5f + 0.5f * cos(x * pin)) * sinc(x); };
     auto write_sample = [&](float *x, float p, float s){
         int l = (int)std::ceil(p-N);
@@ -190,6 +190,12 @@ void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         float d = i / (float)n;
         vec3 targetPos = oldState.targetPosition * (1.0f - d) + newState.targetPosition * d;
         float targetSample = rnd(1.0f);
+
+        for(auto &r : micSamples) r.push(0);
+        for(int j=0; j<mics; j++){
+            float dist = std::min(newState.maxd, (outPositions[j]-targetPos).abs());
+            write_sample(&micSamples[j][0], dist / newState.c * fs, targetSample / (1.0f + dist));
+        }
 
         for(auto &r : outSamples) r.push(0);
         for(int j=0; j<2; j++){
