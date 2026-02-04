@@ -14,7 +14,7 @@ public:
 
     juce::SpinLock lock;
     State state, editorState;
-    MicFilters micf, editorMicf;
+    FilterState fstate, editorFstate;
     void timerCallback() override;
 
     //==============================================================================

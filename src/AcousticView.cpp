@@ -13,7 +13,7 @@ AcousticView::AcousticView(PluginEditor& r) : root(r), state(r.state)
 {
     addAndMakeVisible(graph);
 
-    graph.set_view(-1, 1, -1, 1);
+    graph.set_view(-10, 10, -6, 6);
 
     graph.on_mouse_down = [this]([[maybe_unused]] const juce::MouseEvent& e){
         dragging = true;
@@ -25,7 +25,8 @@ AcousticView::AcousticView(PluginEditor& r) : root(r), state(r.state)
 
     graph.on_mouse_move = [this]([[maybe_unused]] const juce::MouseEvent& e){
         if(!dragging) return;
-        state.targetPosition = {1, graph.virtual_x(graph.mouseX), graph.virtual_y(graph.mouseY)};
+        state.targetPosition.y = graph.virtual_x(graph.mouseX);
+        state.targetPosition.z = graph.virtual_y(graph.mouseY);
         graph.repaint();
     };
 

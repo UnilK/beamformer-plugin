@@ -1,4 +1,4 @@
-#include "BeamFormer.h"
+#include "Beamformer.h"
 
 #include "constants.h"
 
@@ -22,6 +22,8 @@ std::vector<vec3> createShowerFlowerArray(int arms, int armlength, float curve, 
             flower.emplace_back(0, c.real(), c.imag());
         }
     }
+
+    return flower;
 }
 
 std::tuple<std::vector<float>, std::vector<float>> createFilterBank(float fs, float firstFreq, float relativeHalfTime){
@@ -31,6 +33,7 @@ std::tuple<std::vector<float>, std::vector<float>> createFilterBank(float fs, fl
     while(f < 0.9f * fs * 0.5f){
         freq.push_back(2.0f*PIF*f/fs);
         decay.push_back(relativeHalfTime);
+        f *= 1 + (0.25 / relativeHalfTime);
     }
     return {freq, decay};
 }
