@@ -200,19 +200,19 @@ void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         r.set_offset(N);
     }
 
-    auto simulateSoundPropagation = [&](int sampleIndex, std::vector<rbuffer<float> > &outputBuffer){
+    auto simulateSoundPropagation = [&](int sampleIndex, const std::vector<vec3>& micPos, std::vector<rbuffer<float> > &outputBuffer){
         float d = sampleIndex / (float)blocksize;
         vec3 targetPos = oldState.targetPosition * (1.0f - d) + newState.targetPosition * d;
 
         for(auto &r : outputBuffer) r.push(0);
         for(int j=0; j<(int)outputBuffer.size(); j++){
-            float dist = std::min(newState.maxd, (outPositions[j]-targetPos).abs());
+            float dist = std::min(newState.maxd, (micPos[j]-targetPos).abs());
             write_sample(&outputBuffer[j][0], dist / fsa.c * fs, targetSamples[sampleIndex] / (1.0f + dist));
         }
     };
 
     for(int sampleIndex=0; sampleIndex<blocksize; sampleIndex++){
-        simulateSoundPropagation(sampleIndex, outSamples);
+        simulateSoundPropagation(sampleIndex, outPositions, outSamples);
         for(int j=0; j<std::min<int>(2, buffer.getNumChannels()); j++){
             buffer.getWritePointer(j)[sampleIndex] = outSamples[j][0];
         }
@@ -247,26 +247,21 @@ void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     fsa.averageAngularVelocity.resize(filters);
     for(auto &i : fsa.currentFilterPhases) i.resize(mics);
     for(auto &i : fsa.averageFilterPhases) i.resize(mics);
-    auto prevFilterPhases = fsa.currentFilterPhases;
+
 
     float avgCoeff = std::pow(newState.frameDecayRate,  newState.fps / fs);
 
     for(int sampleIndex=0; sampleIndex<blocksize; sampleIndex++){
-        simulateSoundPropagation(sampleIndex, micSamples);
+        simulateSoundPropagation(sampleIndex, newState.micPositions, micSamples);
 
-        // compute filter phases
+        // compute filter phases and
+        // estimate angular velocities for each filter by taking average over microphones.
         for(int i=0; i<filters; i++){
             for(int j=0; j<mics; j++){
                 auto &s = fsa.currentFilterPhases[i][j];
-                prevFilterPhases[i][j] = s;
+                auto prev = s;
                 s = s * std::conj(filterCoeff[i]) + filterNorm[i] * micSamples[j][0];
-            }
-        }
-
-        // estimate angular velocities for each filter by taking average over microphones.
-        for(int j=0; j<mics; j++){
-            for(int i=0; i<filters; i++){
-                currentAngularVelocity[i] += fsa.currentFilterPhases[i][j] * std::conj(prevFilterPhases[i][j]);
+                currentAngularVelocity[i] += s * std::conj(prev);
             }
         }
 

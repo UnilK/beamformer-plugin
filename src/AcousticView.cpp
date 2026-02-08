@@ -39,7 +39,7 @@ AcousticView::AcousticView(PluginEditor& r) : root(r), state(r.state), fstate(r.
             return juce::Colour(0xFF000080).interpolatedWith(juce::Colour(0xFFFFFF00), x);
         };
 
-        int gridN = 3;
+        int gridN = 63;
         std::vector<vec3> directions(gridN*gridN);
 
         auto rect = graph.getLocalBounds();
@@ -61,7 +61,7 @@ AcousticView::AcousticView(PluginEditor& r) : root(r), state(r.state), fstate(r.
         float hstep = height / gridN;
         for(int i=0; i<gridN; i++){
             for(int j=0; j<gridN; j++){
-                g.setColour(colorMap(energyMap[i*gridN+j]));
+                g.setColour(colorMap(std::pow(energyMap[i*gridN+j], 10)));
                 g.fillRect(juce::Rectangle{i*wstep-0.5f, j*hstep-0.5f, wstep+1.0f, hstep+1.0f});
             }
         }

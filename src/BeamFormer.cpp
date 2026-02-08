@@ -60,8 +60,7 @@ std::vector<float> beamform(
     for(int i=0; i<filters; i++){
         if(std::norm(fstate.averageAngularVelocity[i]) == 0) continue;
         waveNumber[i] = -std::arg(fstate.averageAngularVelocity[i]) * fstate.fs / fstate.c;
-        std::cout << waveNumber[i] << ' ';
-    } std::cerr << '\n';
+    }
 
     std::vector<std::complex<float> > energyLayer(dirs);
     for(int filter=0; filter<filters; filter++){
