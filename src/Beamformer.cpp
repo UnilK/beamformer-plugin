@@ -37,3 +37,24 @@ std::tuple<std::vector<float>, std::vector<float>> createFilterBank(float fs, fl
     }
     return {freq, decay};
 }
+
+std::vector<float> beamform(
+    const FilterState& fstate,
+    const std::vector<vec3>& micPositions,
+    const std::vector<vec3>& directions,
+    const float& fs,
+    const float& c)
+{
+    int dirs = directions.size();
+    std::vector<float> energyPattern(dirs);
+
+    int filters = fstate.averageAngularVelocity.size();
+    if(filters == 0) return energyPattern;
+    int mics = fstate.averageFilterPhases[0].size();
+
+    std::vector<float> waveNumber(filters);
+    for(int i=0; i<filters; i++){
+        if(std::norm(fstate.averageAngularVelocity[i]) == 0) continue;
+        waveNumber[i] = std::arg(fstate.averageAngularVelocity[i]) * fs / c;
+    }
+}
