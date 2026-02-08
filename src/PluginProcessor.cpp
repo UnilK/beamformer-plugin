@@ -2,7 +2,7 @@
 #include "PluginEditor.h"
 #include "dsp/rbuffer.h"
 #include "constants.h"
-#include "Beamformer.h"
+#include "BeamFormer.h"
 
 #include <vector>
 #include <random>
@@ -219,7 +219,7 @@ void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     // construct filter coefficients
 
     auto toFilterCoeff = [](float centerFrequency, float relativeHalfTime){
-        return std::polar(pow(0.5f, 1.0f / 2 * PIF * relativeHalfTime / centerFrequency), centerFrequency);
+        return std::polar(std::pow(0.5f, 1.0f / 2 * PIF * relativeHalfTime / centerFrequency), centerFrequency);
     };
     auto [angularFreq, delay] = createFilterBank(fs, 500, 2);
     int filters = (int)angularFreq.size();
