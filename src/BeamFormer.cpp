@@ -4,6 +4,7 @@
 
 #include <complex>
 #include <cmath>
+#include <iostream>
 
 std::vector<vec3> createShowerFlowerArray(int arms, int armlength, float curve, float radius){
     std::vector<std::complex<float>> petal;
@@ -33,7 +34,7 @@ std::tuple<std::vector<float>, std::vector<float>> createFilterBank(float fs, fl
     while(f < 0.9f * fs * 0.5f){
         freq.push_back(2.0f*PIF*f/fs);
         decay.push_back(relativeHalfTime);
-        f *= 1 + (0.25 / relativeHalfTime);
+        f *= 1.0f + (0.25f / relativeHalfTime);
     }
     return {freq, decay};
 }
@@ -41,22 +42,24 @@ std::tuple<std::vector<float>, std::vector<float>> createFilterBank(float fs, fl
 std::vector<float> beamform(
     const FilterState& fstate,
     const std::vector<vec3>& micPositions,
-    const std::vector<vec3>& directions,
-    const float& fs,
-    const float& c)
+    std::vector<vec3> directions)
 {
-    int dirs = directions.size();
+    int dirs = (int)directions.size();
     std::vector<float> energyPattern(dirs, 0.0f);
 
-    int filters = fstate.averageAngularVelocity.size();
+    int filters = (int)fstate.averageAngularVelocity.size();
     if(filters == 0) return energyPattern;
-    int mics = fstate.averageFilterPhases[0].size();
+    int mics = (int)fstate.averageFilterPhases[0].size();
+    if((int)micPositions.size() != mics) return energyPattern;
+    
+    // normalize directions
+    for(vec3 &v : directions) v = v / v.abs();
 
     // compute wave numbers of frequencies detected in filters
     std::vector<float> waveNumber(filters);
     for(int i=0; i<filters; i++){
         if(std::norm(fstate.averageAngularVelocity[i]) == 0) continue;
-        waveNumber[i] = std::arg(fstate.averageAngularVelocity[i]) * fs / c;
+        waveNumber[i] = std::arg(fstate.averageAngularVelocity[i]) * fstate.fs / fstate.c;
     }
 
     std::vector<std::complex<float> > energyLayer(dirs);
@@ -67,21 +70,21 @@ std::vector<float> beamform(
         for(int mic=0; mic<mics; mic++){
             for(int dir=0; dir<dirs; dir++){
                 energyLayer[dir] += fstate.averageFilterPhases[filter][mic]
-                    * std::polar(waveNumber[filter] * directions[dir].dotyz(micPositions[mic]));
+                    * std::polar(1.0f, waveNumber[filter] * directions[dir].dotyz(micPositions[mic]));
             }
         }
 
-        // visualize by mapping the energy range to [0, 1]. add to total sum
+        // visualize by mapping the energy range to [0, nmax]. add to total sum
         float nmin = 1e18f;
         float nmax = -1.0f;
         for(auto &i : energyLayer){
             nmin = std::min(nmin, std::norm(i));
-            nmax = std::max(nmin, std::norm(i));
+            nmax = std::max(nmax, std::norm(i));
         }
 
         if(nmin >= nmax) continue;
 
-        float irange = 1.0f / (nmax - nmin);
+        float irange = nmax / (nmax - nmin);
         for(int i=0; i<dirs; i++){
             energyPattern[i] += (std::norm(energyLayer[i])-nmin) * irange;
         }
@@ -90,15 +93,15 @@ std::vector<float> beamform(
     float nmin = 1e18f;
     float nmax = -1.0f;
     for(auto &i : energyPattern){
-        nmin = std::min(nmin, std::norm(i));
-        nmax = std::max(nmin, std::norm(i));
+        nmin = std::min(nmin, i);
+        nmax = std::max(nmax, i);
     }
 
     if(nmin >= nmax) return energyPattern;
 
     float irange = 1.0f / (nmax - nmin);
     for(int i=0; i<dirs; i++){
-        energyPattern[i] = (std::norm(energyPattern[i])-nmin) * irange;
+        energyPattern[i] = (energyPattern[i]-nmin) * irange;
     }
 
     return energyPattern;

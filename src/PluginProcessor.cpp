@@ -19,7 +19,7 @@ PluginAudioProcessor::PluginAudioProcessor()
                      #endif
                        )
 {
-    state.micPositions = createShowerFlowerArray(5, 4, PIF / 20.0f);
+    state.micPositions = editorState.micPositions = createShowerFlowerArray(5, 4, PIF / 20.0f);
     startTimer(5);
 }
 
@@ -156,6 +156,8 @@ void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     static State oldState = state;
     lock.exit();
 
+    auto fsa = fstate;
+
     float fs = (float)this->getSampleRate();
     int mics = (int)newState.micPositions.size();
 
@@ -163,7 +165,8 @@ void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     // Simulate the propagation of sound from the target to the microphone array.
     ///////////////////////////////////////////////////////////////////////////
 
-    int maxs = (int)(newState.maxd / newState.c * fs) + 1;
+    fsa.fs = fs;
+    int maxs = (int)(newState.maxd / fsa.c * fs) + 1;
     static std::vector<rbuffer<float> > micSamples(mics);
 
     constexpr int N = 12;
@@ -199,7 +202,7 @@ void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         for(auto &r : outputBuffer) r.push(0);
         for(int j=0; j<(int)outputBuffer.size(); j++){
             float dist = std::min(newState.maxd, (outPositions[j]-targetPos).abs());
-            write_sample(&outputBuffer[j][0], dist / newState.c * fs, targetSample / (1.0f + dist));
+            write_sample(&outputBuffer[j][0], dist / fsa.c * fs, targetSample / (1.0f + dist));
         }
     };
 
@@ -214,14 +217,16 @@ void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     // Compute the filter phases for the beamformer visualization.
     ///////////////////////////////////////////////////////////////////////////
 
-    auto fsa = fstate;
-
     // construct filter coefficients
 
     auto toFilterCoeff = [](float centerFrequency, float relativeHalfTime){
-        return std::polar(std::pow(0.5f, 1.0f / 2 * PIF * relativeHalfTime / centerFrequency), centerFrequency);
+        return std::polar(std::pow(0.5f, 1.0f / (2 * PIF * relativeHalfTime / centerFrequency)), centerFrequency);
     };
+    
     auto [angularFreq, delay] = createFilterBank(fs, 500, 2);
+    fsa.micAngularFrequencies = angularFreq;
+    fsa.micRelativeDecays = delay;
+
     int filters = (int)angularFreq.size();
     std::vector<std::complex<float> > filterCoeff(filters);
     std::vector<float> filterNorm(filters);
@@ -231,7 +236,7 @@ void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     }
 
     // Prepare filter array
-    std::vector<std::complex<float> > currentAngularVelocity(filters);
+    std::vector<std::complex<float> > currentAngularVelocity(filters, 0.0f);
     fsa.currentFilterPhases.resize(filters);
     fsa.averageFilterPhases.resize(filters);
     fsa.averageAngularVelocity.resize(filters);
@@ -262,6 +267,7 @@ void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
 
         // update averaged filter phases
         for(int i=0; i<filters; i++){
+            auto av = currentAngularVelocity[i] / (std::abs(currentAngularVelocity[i]) + 1e-18f);
             for(int j=0; j<mics; j++){
                 fsa.averageFilterPhases[i][j] =
                     fsa.currentFilterPhases[i][j] * (1.0f - avgCoeff) +

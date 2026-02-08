@@ -17,6 +17,10 @@ struct vec3 {
         return {x*s, y*s, z*s};
     }
 
+    vec3 operator/(const float& s) const {
+        return {x/s, y/s, z/s};
+    }
+
     float abs() const {
         return std::sqrt(x*x+y*y+z*z);
     }

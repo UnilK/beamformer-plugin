@@ -6,6 +6,7 @@
 
 class PluginEditor;
 struct State;
+struct FilterState;
 
 class AcousticView  : public juce::Component
 {
@@ -16,6 +17,7 @@ public:
 
     PluginEditor& root;
     State& state;
+    FilterState& fstate;
 
     void paint (juce::Graphics&) override;
     void resized() override;

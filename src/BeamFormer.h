@@ -13,6 +13,4 @@ std::tuple<std::vector<float>, std::vector<float>> createFilterBank(float fs, fl
 std::vector<float> beamform(
     const FilterState& fstate,
     const std::vector<vec3>& micPositions,
-    const std::vector<vec3>& directions,
-    const float& fs,
-    const float& c);
+    std::vector<vec3> directions);

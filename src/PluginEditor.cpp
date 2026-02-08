@@ -8,7 +8,7 @@
 
 //==============================================================================
 PluginEditor::PluginEditor (PluginAudioProcessor& p)
-    : AudioProcessorEditor (&p), processorRef (p), state(p.editorState)
+    : AudioProcessorEditor (&p), processorRef (p), state(p.editorState), fstate(p.editorFstate)
 {
     style = std::make_unique<Style>();
     view = std::make_unique<AcousticView>(*this);

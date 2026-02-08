@@ -4,12 +4,13 @@
 #include "ui/Style.h"
 #include "PluginEditor.h"
 #include "State.h"
+#include "BeamFormer.h"
 
 #include <iostream>
 
 //==============================================================================
 
-AcousticView::AcousticView(PluginEditor& r) : root(r), state(r.state)
+AcousticView::AcousticView(PluginEditor& r) : root(r), state(r.state), fstate(r.fstate)
 {
     addAndMakeVisible(graph);
 
@@ -26,7 +27,6 @@ AcousticView::AcousticView(PluginEditor& r) : root(r), state(r.state)
         if(!dragging) return;
         state.targetPosition.y = graph.virtual_x(graph.mouseX);
         state.targetPosition.z = graph.virtual_y(graph.mouseY);
-        graph.repaint();
     };
 
     graph.on_mouse_exit = [this]([[maybe_unused]] const juce::MouseEvent& e){
@@ -34,10 +34,46 @@ AcousticView::AcousticView(PluginEditor& r) : root(r), state(r.state)
     };
 
     graph.paint_graph = [this](juce::Graphics &g){
-        const float r = 20;
-        g.fillAll (palette.bg);
+
+        auto colorMap = [](float x){
+            return juce::Colour(0xFF000080).interpolatedWith(juce::Colour(0xFFFFFF00), x);
+        };
+
+        int gridN = 3;
+        std::vector<vec3> directions(gridN*gridN);
+
+        auto rect = graph.getLocalBounds();
+        float width = (float)rect.getWidth();
+        float height = (float)rect.getHeight();
+
+        for(int i=0; i<gridN; i++){
+            for(int j=0; j<gridN; j++){
+                directions[i*gridN+j] = {
+                    10,
+                    graph.virtual_x(width*(i+0.5f)/gridN),
+                    graph.virtual_y(height*(j+0.5f)/gridN)};
+            }
+        }
+
+        auto energyMap = beamform(fstate, state.micPositions, directions);
+
+        float wstep = width / gridN;
+        float hstep = height / gridN;
+        for(int i=0; i<gridN; i++){
+            for(int j=0; j<gridN; j++){
+                g.setColour(colorMap(energyMap[i*gridN+j]));
+                g.fillRect(juce::Rectangle{i*wstep-0.5f, j*hstep-0.5f, wstep+1.0f, hstep+1.0f});
+            }
+        }
+
+        float r = 24;
         g.setColour(palette.lwhite);
         g.drawEllipse(graph.canvas_x(state.targetPosition.y)-r/2, graph.canvas_y(state.targetPosition.z)-r/2, r, r, 3);
+        r -= 4;
+        g.setColour(palette.bg);
+        g.drawEllipse(graph.canvas_x(state.targetPosition.y)-r/2, graph.canvas_y(state.targetPosition.z)-r/2, r, r, 3);
+
+        graph.repaint();
     };
 }
 
