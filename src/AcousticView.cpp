@@ -61,7 +61,7 @@ AcousticView::AcousticView(PluginEditor& r) : root(r), state(r.state), fstate(r.
         float hstep = height / gridN;
         for(int i=0; i<gridN; i++){
             for(int j=0; j<gridN; j++){
-                g.setColour(colorMap(std::pow(energyMap[i*gridN+j], 10)));
+                g.setColour(colorMap(std::pow(energyMap[i*gridN+j], 10.0f)));
                 g.fillRect(juce::Rectangle{i*wstep-0.5f, j*hstep-0.5f, wstep+1.0f, hstep+1.0f});
             }
         }

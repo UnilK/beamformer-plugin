@@ -254,10 +254,12 @@ void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     for(int sampleIndex=0; sampleIndex<blocksize; sampleIndex++){
         simulateSoundPropagation(sampleIndex, newState.micPositions, micSamples);
 
+        for(auto& i : currentAngularVelocity) i = 0.0f;
+
         // compute filter phases and
         // estimate angular velocities for each filter by taking average over microphones.
-        for(int i=0; i<filters; i++){
-            for(int j=0; j<mics; j++){
+        for(int j=0; j<mics; j++){
+            for(int i=0; i<filters; i++){
                 auto &s = fsa.currentFilterPhases[i][j];
                 auto prev = s;
                 s = s * std::conj(filterCoeff[i]) + filterNorm[i] * micSamples[j][0];
@@ -280,6 +282,8 @@ void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
             fsa.averageAngularVelocity[i] =
                 currentAngularVelocity[i] * (1.0f - avgCoeff) +
                 fsa.averageAngularVelocity[i] * avgCoeff;
+
+            // fsa.averageAngularVelocity[i] = std::conj(filterCoeff[i]);
         }
     }
 

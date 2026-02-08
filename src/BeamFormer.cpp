@@ -64,7 +64,8 @@ std::vector<float> beamform(
 
     std::vector<std::complex<float> > energyLayer(dirs);
     for(int filter=0; filter<filters; filter++){
-        std::fill(energyLayer.begin(), energyLayer.end(), 0.0f);
+        
+        for(auto& i : energyLayer) i = 0.0f;
 
         // Beamformer!
         for(int mic=0; mic<mics; mic++){
