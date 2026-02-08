@@ -19,7 +19,7 @@ PluginAudioProcessor::PluginAudioProcessor()
                      #endif
                        )
 {
-    state.micPositions = editorState.micPositions = createShowerFlowerArray(5, 4, PIF / 20.0f);
+    state.micPositions = editorState.micPositions = createShowerFlowerArray(5, 4, PIF / 20.0f, 0.05f);
     startTimer(5);
 }
 
@@ -186,6 +186,13 @@ void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         for(int i=l; i<=r; i++) x[i] += s * impulse(i-p);
     };
 
+    // Generate target noise
+    int blocksize = buffer.getNumSamples();
+    static std::vector<float> targetSamples;
+    targetSamples.resize(blocksize);
+
+    for(float& i : targetSamples) i = rnd(1.0f);
+
     static std::vector<rbuffer<float> > outSamples(2);
     static std::vector<vec3> outPositions{{0, -0.1f, 0}, {0, 0.1f, 0}};
     for(auto &r : outSamples){
@@ -193,16 +200,14 @@ void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         r.set_offset(N);
     }
 
-    int blocksize = buffer.getNumSamples();
     auto simulateSoundPropagation = [&](int sampleIndex, std::vector<rbuffer<float> > &outputBuffer){
         float d = sampleIndex / (float)blocksize;
         vec3 targetPos = oldState.targetPosition * (1.0f - d) + newState.targetPosition * d;
-        float targetSample = rnd(1.0f);
 
         for(auto &r : outputBuffer) r.push(0);
         for(int j=0; j<(int)outputBuffer.size(); j++){
             float dist = std::min(newState.maxd, (outPositions[j]-targetPos).abs());
-            write_sample(&outputBuffer[j][0], dist / fsa.c * fs, targetSample / (1.0f + dist));
+            write_sample(&outputBuffer[j][0], dist / fsa.c * fs, targetSamples[sampleIndex] / (1.0f + dist));
         }
     };
 
@@ -271,7 +276,7 @@ void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
             for(int j=0; j<mics; j++){
                 fsa.averageFilterPhases[i][j] =
                     fsa.currentFilterPhases[i][j] * (1.0f - avgCoeff) +
-                    fsa.averageFilterPhases[i][j] * currentAngularVelocity[i] * avgCoeff;
+                    fsa.averageFilterPhases[i][j] * av * avgCoeff;
             }
         }
 
