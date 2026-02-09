@@ -18,6 +18,10 @@ struct State {
 
     float fps = 30.0f;
     float frameDecayRate = 0.3f;
+
+    bool targetNoise = true;
+    bool targetSine = false;
+    float targetFrequency = 5000;
 };
 
 struct FilterState {

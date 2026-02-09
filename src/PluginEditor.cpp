@@ -12,6 +12,7 @@ PluginEditor::PluginEditor (PluginAudioProcessor& p)
 {
     style = std::make_unique<Style>();
     view = std::make_unique<AcousticView>(*this);
+    sliderStyle = std::make_unique<SliderStyle>();
     juce::LookAndFeel::setDefaultLookAndFeel(style.get());
     setLookAndFeel(style.get());
 

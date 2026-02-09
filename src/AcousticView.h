@@ -25,6 +25,10 @@ public:
     bool dragging = false;
     Graph graph;
 
+    juce::ToggleButton noiseButton, sineButton;
+    juce::Slider frequencySlider;
+    juce::Label targetLabel, frequencyLabel;
+
 private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AcousticView)

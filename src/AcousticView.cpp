@@ -12,6 +12,54 @@
 
 AcousticView::AcousticView(PluginEditor& r) : root(r), state(r.state), fstate(r.fstate)
 {
+    std::tuple<juce::ToggleButton*, juce::String, bool&> ctrp[2] = {
+        {&noiseButton, "white noise", state.targetNoise},
+        {&sineButton, "pure sine", state.targetSine},
+    };
+
+    for(auto &[a, b, c] : ctrp){
+        a->onClick = [&c](){ c ^= 1; };
+        a->setClickingTogglesState(true);
+        a->setToggleState(c, juce::NotificationType::dontSendNotification);
+        a->setButtonText(b);
+        addAndMakeVisible(a);
+    }
+
+    auto labels = {
+        &targetLabel,
+        &frequencyLabel
+    };
+
+    for(juce::Label *i : labels){
+        addAndMakeVisible(*i);
+        i->setFont(juce::FontOptions{fontSize});
+        i->setJustificationType(juce::Justification::left);
+    }
+
+    targetLabel.setFont(juce::FontOptions{24.0f});
+    targetLabel.setJustificationType(juce::Justification::centred);
+
+    targetLabel.setText("Target sound control", juce::dontSendNotification);
+    frequencyLabel.setText("sine frequency", juce::dontSendNotification);
+
+    frequencySlider.setRange(200, 20000, 1);
+    frequencySlider.setSkewFactor(0.5f);
+    frequencySlider.setTextValueSuffix(" Hz");
+
+    std::tuple<juce::Slider*, float&> sliders[] = {
+        {&frequencySlider, state.targetFrequency},
+    };
+
+    for(auto [i, a] : sliders){
+        addAndMakeVisible(*i);
+        i->setTextBoxStyle(juce::Slider::TextBoxLeft, false, 100, 28);
+        i->setLookAndFeel(r.sliderStyle.get());
+        i->setValue(a, juce::NotificationType::dontSendNotification);
+        i->onValueChange = [&a, i](){
+            a = (float)i->getValue();
+        };
+    }
+
     addAndMakeVisible(graph);
 
     graph.on_mouse_down = [this]([[maybe_unused]] const juce::MouseEvent& e){
@@ -88,12 +136,23 @@ void AcousticView::paint (juce::Graphics& g)
 
 void AcousticView::resized()
 {
-    juce::FlexBox fb;
-    fb.items.add(juce::FlexItem(graph).withFlex(1,1,0));
+    juce::FlexBox fb, fbl;
+    fb.items.add(juce::FlexItem(fbl).withFlex(1,1,0).withMargin(8));
+    fb.items.add(juce::FlexItem(graph).withFlex(2,2,0));
 
-    auto rect = getLocalBounds();
-    float aspectRatio = (float)rect.getHeight() / rect.getWidth();
-    graph.set_view(-10, 10, -10 * aspectRatio, 10 * aspectRatio);
+    fbl.flexDirection = juce::FlexBox::Direction::column;
+    fbl.items.add(juce::FlexItem(targetLabel).withFlex(0,0,50));
+    fbl.items.add(juce::FlexItem(noiseButton).withFlex(0,0,30));
+    fbl.items.add(juce::FlexItem(sineButton).withFlex(0,0,30));
+
+    juce::FlexBox fbs;
+    fbl.items.add(juce::FlexItem(fbs).withFlex(0,0,30));
+    fbs.items.add(juce::FlexItem(frequencyLabel).withFlex(0,0,140));
+    fbs.items.add(juce::FlexItem(frequencySlider).withFlex(1,1,0));
 
     fb.performLayout(getLocalBounds());
+
+    auto rect = graph.getLocalBounds();
+    float aspectRatio = (float)rect.getHeight() / rect.getWidth();
+    graph.set_view(-10, 10, -10 * aspectRatio, 10 * aspectRatio);
 }

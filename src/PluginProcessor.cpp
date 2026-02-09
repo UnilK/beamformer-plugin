@@ -190,8 +190,17 @@ void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     int blocksize = buffer.getNumSamples();
     static std::vector<float> targetSamples;
     targetSamples.resize(blocksize);
+    for(float &i : targetSamples) i = 0.0f;
 
-    for(float& i : targetSamples) i = rnd(1.0f);
+    if(newState.targetNoise) for(float& i : targetSamples) i += rnd(1.0f);
+    if(newState.targetSine){
+        static float p = 0.0f;
+        float angv = 2 * PIF * newState.targetFrequency / fs;
+        for(float& i : targetSamples){
+            i += std::sin(p);
+            p = std::fmodf(p + angv, 2 * PIF);
+        }
+    }
 
     static std::vector<rbuffer<float> > outSamples(2);
     static std::vector<vec3> outPositions{{0, -0.1f, 0}, {0, 0.1f, 0}};
