@@ -7,14 +7,17 @@
 #include "BeamFormer.h"
 
 #include <iostream>
+#include <list>
 
 //==============================================================================
 
 AcousticView::AcousticView(PluginEditor& r) : root(r), state(r.state), fstate(r.fstate)
 {
-    std::tuple<juce::ToggleButton*, juce::String, bool&> ctrp[2] = {
+    std::tuple<juce::ToggleButton*, juce::String, bool&> ctrp[] = {
         {&noiseButton, "white noise", state.targetNoise},
         {&sineButton, "pure sine", state.targetSine},
+        {&frequencyTrackingButton, "Disable frequency tracking", state.disableFrequencyTracking},
+        {&phaseAveragingButton, "Disable phase averaging", state.disablePhaseAveraging},
     };
 
     for(auto &[a, b, c] : ctrp){
@@ -25,29 +28,39 @@ AcousticView::AcousticView(PluginEditor& r) : root(r), state(r.state), fstate(r.
         addAndMakeVisible(a);
     }
 
-    auto labels = {
-        &targetLabel,
-        &frequencyLabel
+    std::tuple<juce::Label*, const char*> labels[] = {
+        {&targetLabel, "Target sound control"},
+        {&frequencyLabel, "Sine frequency"},
+        {&volumeLabel, "Volume"},
+        {&algoLabel, "Algorithm controls"},
+        {&algoSubLabel, "Validate fancy maths"},
     };
 
-    for(juce::Label *i : labels){
+    for(auto [i, a] : labels){
         addAndMakeVisible(*i);
+        i->setText(a, juce::dontSendNotification);
         i->setFont(juce::FontOptions{fontSize});
         i->setJustificationType(juce::Justification::left);
     }
 
     targetLabel.setFont(juce::FontOptions{24.0f});
     targetLabel.setJustificationType(juce::Justification::centred);
-
-    targetLabel.setText("Target sound control", juce::dontSendNotification);
-    frequencyLabel.setText("sine frequency", juce::dontSendNotification);
+    
+    algoLabel.setFont(juce::FontOptions{240.0f});
+    algoLabel.setJustificationType(juce::Justification::centred);
+    algoSubLabel.setFont(juce::FontOptions{6.0f});
 
     frequencySlider.setRange(200, 20000, 1);
     frequencySlider.setSkewFactor(0.5f);
     frequencySlider.setTextValueSuffix(" Hz");
 
+    volumeSlider.setRange(-100, 0, 0.1);
+    volumeSlider.setSkewFactor(4.0f);
+    volumeSlider.setTextValueSuffix(" dB");
+
     std::tuple<juce::Slider*, float&> sliders[] = {
         {&frequencySlider, state.targetFrequency},
+        {&volumeSlider, state.outVolumedB},
     };
 
     for(auto [i, a] : sliders){
@@ -136,23 +149,42 @@ void AcousticView::paint (juce::Graphics& g)
 
 void AcousticView::resized()
 {
+    std::list<juce::FlexBox> fbvec;
+    auto fbs = [&](bool makeNew = false) -> juce::FlexBox& {
+        if(makeNew) fbvec.emplace_back();
+        return fbvec.back();
+    };
+
     juce::FlexBox fb, fbl;
     fb.items.add(juce::FlexItem(fbl).withFlex(1,1,0).withMargin(8));
     fb.items.add(juce::FlexItem(graph).withFlex(2,2,0));
 
     fbl.flexDirection = juce::FlexBox::Direction::column;
+
+    {
+        fbl.items.add(juce::FlexItem(fbs(1)).withFlex(0,0,30));
+        fbs().items.add(juce::FlexItem(volumeLabel).withFlex(0,0,140));
+        fbs().items.add(juce::FlexItem(volumeSlider).withFlex(1,1,0));
+    }
+
     fbl.items.add(juce::FlexItem(targetLabel).withFlex(0,0,50));
     fbl.items.add(juce::FlexItem(noiseButton).withFlex(0,0,30));
     fbl.items.add(juce::FlexItem(sineButton).withFlex(0,0,30));
 
-    juce::FlexBox fbs;
-    fbl.items.add(juce::FlexItem(fbs).withFlex(0,0,30));
-    fbs.items.add(juce::FlexItem(frequencyLabel).withFlex(0,0,140));
-    fbs.items.add(juce::FlexItem(frequencySlider).withFlex(1,1,0));
+    {
+        fbl.items.add(juce::FlexItem(fbs(1)).withFlex(0,0,30));
+        fbs().items.add(juce::FlexItem(frequencyLabel).withFlex(0,0,140));
+        fbs().items.add(juce::FlexItem(frequencySlider).withFlex(1,1,0));
+    }
+
+    fbl.items.add(juce::FlexItem(algoLabel).withFlex(0,0,50));
+    fbl.items.add(juce::FlexItem(algoSubLabel).withFlex(0,0,30));
+    fbl.items.add(juce::FlexItem(phaseAveragingButton).withFlex(0,0,30));
+    fbl.items.add(juce::FlexItem(frequencyTrackingButton).withFlex(0,0,30));
 
     fb.performLayout(getLocalBounds());
 
     auto rect = graph.getLocalBounds();
     float aspectRatio = (float)rect.getHeight() / rect.getWidth();
-    graph.set_view(-10, 10, -10 * aspectRatio, 10 * aspectRatio);
+    graph.set_view(-20, 20, -20 * aspectRatio, 20 * aspectRatio);
 }

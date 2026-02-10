@@ -25,9 +25,9 @@ public:
     bool dragging = false;
     Graph graph;
 
-    juce::ToggleButton noiseButton, sineButton;
-    juce::Slider frequencySlider;
-    juce::Label targetLabel, frequencyLabel;
+    juce::ToggleButton noiseButton, sineButton, phaseAveragingButton, frequencyTrackingButton;
+    juce::Slider frequencySlider, volumeSlider;
+    juce::Label targetLabel, frequencyLabel, volumeLabel, algoLabel, algoSubLabel;
 
 private:
 

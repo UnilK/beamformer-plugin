@@ -226,8 +226,9 @@ void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
 
     for(int sampleIndex=0; sampleIndex<blocksize; sampleIndex++){
         simulateSoundPropagation(sampleIndex, outPositions, outSamples);
+        float gain = (float)std::pow(10, newState.outVolumedB / 20);
         for(int j=0; j<std::min<int>(2, buffer.getNumChannels()); j++){
-            buffer.getWritePointer(j)[sampleIndex] = outSamples[j][0];
+            buffer.getWritePointer(j)[sampleIndex] = outSamples[j][0] * gain;
         }
     }
 
@@ -297,6 +298,15 @@ void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
                 fsa.averageAngularVelocity[i] * avgCoeff;
 
             // fsa.averageAngularVelocity[i] = std::conj(filterCoeff[i]);
+        }
+
+        if(newState.disableFrequencyTracking){
+            fsa.averageAngularVelocity = filterCoeff;
+            for(auto &i : fsa.averageAngularVelocity) i = std::conj(i);
+        }
+
+        if(newState.disablePhaseAveraging){
+            fsa.averageFilterPhases = fsa.currentFilterPhases;
         }
     }
 

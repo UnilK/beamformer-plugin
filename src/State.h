@@ -8,10 +8,6 @@
 struct State {
     vec3 targetPosition{10, 0, 0};
     std::vector<vec3> micPositions;
-    int targetSoundType = 0;
-    float targetStrength = 1;
-    int noiseType = 0;
-    float noiseStrength = 0;
 
     float mind = 1e-3f;
     float maxd = 100;
@@ -22,6 +18,10 @@ struct State {
     bool targetNoise = true;
     bool targetSine = false;
     float targetFrequency = 5000;
+    float outVolumedB = -10.0f;
+
+    bool disableFrequencyTracking = false;
+    bool disablePhaseAveraging = false;
 };
 
 struct FilterState {
