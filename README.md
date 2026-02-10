@@ -15,7 +15,8 @@ and Cmake installed. To build the project from a fresh clone, run:
 ```console
 git submodule init
 git submodule update
-cmake -S . -B build
+cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -S . -B build
+cmake --build build --config RelWithDebInfo
 ```
 
 On Windows, run the project with:

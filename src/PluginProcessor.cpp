@@ -180,10 +180,10 @@ void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     constexpr float pin = (float)(PIF / N);
     auto sinc = [&](float x){ return x*x < 1e-12f ? 1.0f : sin(x * PIF) / (x * PIF); };
     auto impulse = [&](float x){ return (0.5f + 0.5f * cos(x * pin)) * sinc(x); };
-    auto write_sample = [&](float *x, float p, float s){
-        int l = (int)std::ceil(p-N);
-        int r = (int)std::floor(p+N);
-        for(int i=l; i<=r; i++) x[i] += s * impulse(i-p);
+    auto write_sample = [&](float *x, float p, float s, float d){
+        int l = (int)std::ceil(p-N/d);
+        int r = (int)std::floor(p+N/d);
+        for(int i=l; i<=r; i++) x[i] += s * impulse((i-p)*d);
     };
 
     // Generate target noise
@@ -213,10 +213,14 @@ void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         float d = sampleIndex / (float)blocksize;
         vec3 targetPos = oldState.targetPosition * (1.0f - d) + newState.targetPosition * d;
 
+        float dt = 1.0f / fs;
+        float speed = ((targetPos + (newState.targetPosition - newState.targetPosition) * dt).abs() - targetPos.abs()) / dt;
+        float dopplerCoeff = fsa.c / (speed + fsa.c);
+
         for(auto &r : outputBuffer) r.push(0);
         for(int j=0; j<(int)outputBuffer.size(); j++){
             float dist = std::min(newState.maxd, (micPos[j]-targetPos).abs());
-            write_sample(&outputBuffer[j][0], dist / fsa.c * fs, targetSamples[sampleIndex] / (1.0f + dist));
+            write_sample(&outputBuffer[j][0], dist / fsa.c * fs, targetSamples[sampleIndex] / (1.0f + dist), dopplerCoeff);
         }
     };
 

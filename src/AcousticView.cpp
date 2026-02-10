@@ -84,7 +84,7 @@ AcousticView::AcousticView(PluginEditor& r) : root(r), state(r.state), fstate(r.
     graph.paint_graph = [this](juce::Graphics &g){
 
         auto colorMap = [](float x){
-            return juce::Colour(0xFF000080).interpolatedWith(juce::Colour(0xFFFFFF00), x);
+            return palette.bg.interpolatedWith(palette.lyellow, x);
         };
 
         int gridN = 63;
