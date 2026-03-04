@@ -13,14 +13,14 @@
 
 AcousticView::AcousticView(PluginEditor& r) : root(r), state(r.state), fstate(r.fstate)
 {
-    std::tuple<juce::ToggleButton*, juce::String, bool&> ctrp[] = {
+    std::tuple<juce::ToggleButton*, juce::String, bool&> buttons[] = {
         {&noiseButton, "white noise", state.targetNoise},
         {&sineButton, "pure sine", state.targetSine},
         {&frequencyTrackingButton, "Disable frequency tracking", state.disableFrequencyTracking},
         {&phaseAveragingButton, "Disable phase averaging", state.disablePhaseAveraging},
     };
 
-    for(auto &[a, b, c] : ctrp){
+    for(auto &[a, b, c] : buttons){
         a->onClick = [&c](){ c ^= 1; };
         a->setClickingTogglesState(true);
         a->setToggleState(c, juce::NotificationType::dontSendNotification);
@@ -34,6 +34,7 @@ AcousticView::AcousticView(PluginEditor& r) : root(r), state(r.state), fstate(r.
         {&volumeLabel, "Volume"},
         {&algoLabel, "Algorithm controls"},
         {&algoSubLabel, "Validate fancy maths"},
+        {&SNRLabel, "1/SNR"},
     };
 
     for(auto [i, a] : labels){
@@ -58,9 +59,14 @@ AcousticView::AcousticView(PluginEditor& r) : root(r), state(r.state), fstate(r.
     volumeSlider.setSkewFactor(4.0f);
     volumeSlider.setTextValueSuffix(" dB");
 
+    SNRSlider.setRange(0, 10, 0.01);
+    SNRSlider.setSkewFactor(0.8f);
+    SNRSlider.setTextValueSuffix("");
+
     std::tuple<juce::Slider*, float&> sliders[] = {
         {&frequencySlider, state.targetFrequency},
         {&volumeSlider, state.outVolumedB},
+        {&SNRSlider, state.nsr},
     };
 
     for(auto [i, a] : sliders){
@@ -129,10 +135,10 @@ AcousticView::AcousticView(PluginEditor& r) : root(r), state(r.state), fstate(r.
 
         float r = 24;
         g.setColour(palette.lwhite);
-        g.drawEllipse(graph.canvas_x(state.targetPosition.y)-r/2, graph.canvas_y(state.targetPosition.z)-r/2, r, r, 3);
+        g.drawEllipse(graph.canvas_x(state.outTargetPosition.y)-r/2, graph.canvas_y(state.outTargetPosition.z)-r/2, r, r, 3);
         r -= 4;
         g.setColour(palette.bg);
-        g.drawEllipse(graph.canvas_x(state.targetPosition.y)-r/2, graph.canvas_y(state.targetPosition.z)-r/2, r, r, 3);
+        g.drawEllipse(graph.canvas_x(state.outTargetPosition.y)-r/2, graph.canvas_y(state.outTargetPosition.z)-r/2, r, r, 3);
 
         graph.repaint();
     };
@@ -177,6 +183,12 @@ void AcousticView::resized()
         fbs().items.add(juce::FlexItem(frequencySlider).withFlex(1,1,0));
     }
 
+    {
+        fbl.items.add(juce::FlexItem(fbs(1)).withFlex(0,0,30));
+        fbs().items.add(juce::FlexItem(SNRLabel).withFlex(0,0,140));
+        fbs().items.add(juce::FlexItem(SNRSlider).withFlex(1,1,0));
+    }
+
     fbl.items.add(juce::FlexItem(algoLabel).withFlex(0,0,50));
     fbl.items.add(juce::FlexItem(algoSubLabel).withFlex(0,0,30));
     fbl.items.add(juce::FlexItem(phaseAveragingButton).withFlex(0,0,30));
@@ -186,5 +198,6 @@ void AcousticView::resized()
 
     auto rect = graph.getLocalBounds();
     float aspectRatio = (float)rect.getHeight() / rect.getWidth();
-    graph.set_view(-20, 20, -20 * aspectRatio, 20 * aspectRatio);
+    float len = 10.0f / std::sqrt(2.0f); 
+    graph.set_view(-len, len, -len * aspectRatio, len * aspectRatio);
 }

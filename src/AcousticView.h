@@ -26,8 +26,8 @@ public:
     Graph graph;
 
     juce::ToggleButton noiseButton, sineButton, phaseAveragingButton, frequencyTrackingButton;
-    juce::Slider frequencySlider, volumeSlider;
-    juce::Label targetLabel, frequencyLabel, volumeLabel, algoLabel, algoSubLabel;
+    juce::Slider frequencySlider, volumeSlider, SNRSlider;
+    juce::Label targetLabel, frequencyLabel, volumeLabel, algoLabel, algoSubLabel, SNRLabel;
 
 private:
 

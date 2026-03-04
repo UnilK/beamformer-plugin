@@ -13,8 +13,8 @@ public:
     ~PluginAudioProcessor() override;
 
     juce::SpinLock lock;
-    State state, editorState;
-    FilterState fstate, editorFstate;
+    State processorState, editorState;
+    FilterState processorFstate, editorFstate;
     void timerCallback() override;
 
     //==============================================================================

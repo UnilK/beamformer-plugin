@@ -19,7 +19,7 @@ PluginAudioProcessor::PluginAudioProcessor()
                      #endif
                        )
 {
-    state.micPositions = editorState.micPositions = createShowerFlowerArray(5, 4, PIF / 20.0f, 0.05f);
+    processorState.micPositions = editorState.micPositions = createShowerFlowerArray(5, 4, PIF / 20.0f, 0.05f);
     startTimer(5);
 }
 
@@ -30,8 +30,8 @@ PluginAudioProcessor::~PluginAudioProcessor()
 
 void PluginAudioProcessor::timerCallback(){
     lock.enter();
-    state = editorState;
-    editorFstate = fstate;
+    processorState = editorState;
+    editorFstate = processorFstate;
     lock.exit();
 }
 
@@ -152,21 +152,20 @@ void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     juce::ScopedNoDenormals noDenormals;
 
     lock.enter();
-    State newState = state;
-    static State oldState = state;
+    State state = processorState;
     lock.exit();
 
-    auto fsa = fstate;
+    auto fstate = processorFstate;
 
     float fs = (float)this->getSampleRate();
-    int mics = (int)newState.micPositions.size();
+    int mics = (int)state.micPositions.size();
 
     ///////////////////////////////////////////////////////////////////////////
     // Simulate the propagation of sound from the target to the microphone array.
     ///////////////////////////////////////////////////////////////////////////
 
-    fsa.fs = fs;
-    int maxs = (int)(newState.maxd / fsa.c * fs) + 1;
+    fstate.fs = fs;
+    int maxs = (int)(state.maxd / fstate.c * fs) + 1;
     static std::vector<rbuffer<float> > micSamples(mics);
 
     constexpr int N = 12;
@@ -192,10 +191,10 @@ void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     targetSamples.resize(blocksize);
     for(float &i : targetSamples) i = 0.0f;
 
-    if(newState.targetNoise) for(float& i : targetSamples) i += rnd(1.0f);
-    if(newState.targetSine){
+    if(state.targetNoise) for(float& i : targetSamples) i += rnd(1.0f);
+    if(state.targetSine){
         static float p = 0.0f;
-        float angv = 2 * PIF * newState.targetFrequency / fs;
+        float angv = 2 * PIF * state.targetFrequency / fs;
         for(float& i : targetSamples){
             i += std::sin(p);
             p = std::fmodf(p + angv, 2 * PIF);
@@ -209,24 +208,35 @@ void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         r.set_offset(N);
     }
 
+    static std::vector<vec3> targetPositions;
+    targetPositions.resize(blocksize, state.targetPosition);
+    targetPositions[0] = targetPositions[blocksize-1];
+    {
+        float d = std::pow(0.5f, 1.0f / (fs * 0.05f));
+        for(int i=1; i<blocksize; i++){
+            targetPositions[i] = targetPositions[i-1] * d + state.targetPosition * (1.0f - d);
+        }
+        editorState.outTargetPosition = targetPositions[blocksize-1];
+    }
     auto simulateSoundPropagation = [&](int sampleIndex, const std::vector<vec3>& micPos, std::vector<rbuffer<float> > &outputBuffer){
-        float d = sampleIndex / (float)blocksize;
-        vec3 targetPos = oldState.targetPosition * (1.0f - d) + newState.targetPosition * d;
+
+        const vec3 &targetPos = targetPositions[sampleIndex];
 
         float dt = 1.0f / fs;
-        float speed = ((targetPos + (newState.targetPosition - newState.targetPosition) * dt).abs() - targetPos.abs()) / dt;
-        float dopplerCoeff = fsa.c / (speed + fsa.c);
+        float speed = ((targetPos + (state.targetPosition - state.targetPosition) * dt).abs() - targetPos.abs()) / dt;
+        float dopplerCoeff = fstate.c / (speed + fstate.c);
 
         for(auto &r : outputBuffer) r.push(0);
         for(int j=0; j<(int)outputBuffer.size(); j++){
-            float dist = std::min(newState.maxd, (micPos[j]-targetPos).abs());
-            write_sample(&outputBuffer[j][0], dist / fsa.c * fs, targetSamples[sampleIndex] / (1.0f + dist), dopplerCoeff);
+            float dist = std::min(state.maxd, (micPos[j]-targetPos).abs());
+            float sample = (targetSamples[sampleIndex] + rnd(state.nsr)) / (1.0f + dist);
+            write_sample(&outputBuffer[j][0], dist / fstate.c * fs, sample, dopplerCoeff);
         }
     };
 
     for(int sampleIndex=0; sampleIndex<blocksize; sampleIndex++){
         simulateSoundPropagation(sampleIndex, outPositions, outSamples);
-        float gain = (float)std::pow(10, newState.outVolumedB / 20);
+        float gain = (float)std::pow(10, state.outVolumedB / 20);
         for(int j=0; j<std::min<int>(2, buffer.getNumChannels()); j++){
             buffer.getWritePointer(j)[sampleIndex] = outSamples[j][0] * gain;
         }
@@ -243,8 +253,8 @@ void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     };
     
     auto [angularFreq, delay] = createFilterBank(fs, 500, 2);
-    fsa.micAngularFrequencies = angularFreq;
-    fsa.micRelativeDecays = delay;
+    fstate.micAngularFrequencies = angularFreq;
+    fstate.micRelativeDecays = delay;
 
     int filters = (int)angularFreq.size();
     std::vector<std::complex<float> > filterCoeff(filters);
@@ -256,17 +266,17 @@ void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
 
     // Prepare filter array
     std::vector<std::complex<float> > currentAngularVelocity(filters, 0.0f);
-    fsa.currentFilterPhases.resize(filters);
-    fsa.averageFilterPhases.resize(filters);
-    fsa.averageAngularVelocity.resize(filters);
-    for(auto &i : fsa.currentFilterPhases) i.resize(mics);
-    for(auto &i : fsa.averageFilterPhases) i.resize(mics);
+    fstate.currentFilterPhases.resize(filters);
+    fstate.averageFilterPhases.resize(filters);
+    fstate.averageAngularVelocity.resize(filters);
+    for(auto &i : fstate.currentFilterPhases) i.resize(mics);
+    for(auto &i : fstate.averageFilterPhases) i.resize(mics);
 
 
-    float avgCoeff = std::pow(newState.frameDecayRate,  newState.fps / fs);
+    float avgCoeff = std::pow(state.frameDecayRate,  state.fps / fs);
 
     for(int sampleIndex=0; sampleIndex<blocksize; sampleIndex++){
-        simulateSoundPropagation(sampleIndex, newState.micPositions, micSamples);
+        simulateSoundPropagation(sampleIndex, state.micPositions, micSamples);
 
         for(auto& i : currentAngularVelocity) i = 0.0f;
 
@@ -274,7 +284,7 @@ void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         // estimate angular velocities for each filter by taking average over microphones.
         for(int j=0; j<mics; j++){
             for(int i=0; i<filters; i++){
-                auto &s = fsa.currentFilterPhases[i][j];
+                auto &s = fstate.currentFilterPhases[i][j];
                 auto prev = s;
                 s = s * std::conj(filterCoeff[i]) + filterNorm[i] * micSamples[j][0];
                 currentAngularVelocity[i] += s * std::conj(prev);
@@ -285,36 +295,34 @@ void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         for(int i=0; i<filters; i++){
             auto av = currentAngularVelocity[i] / (std::abs(currentAngularVelocity[i]) + 1e-18f);
             for(int j=0; j<mics; j++){
-                fsa.averageFilterPhases[i][j] =
-                    fsa.currentFilterPhases[i][j] * (1.0f - avgCoeff) +
-                    fsa.averageFilterPhases[i][j] * av * avgCoeff;
+                fstate.averageFilterPhases[i][j] =
+                    fstate.currentFilterPhases[i][j] * (1.0f - avgCoeff) +
+                    fstate.averageFilterPhases[i][j] * av * avgCoeff;
             }
         }
 
         // update average angular velocities
         for(int i=0; i<filters; i++){
-            fsa.averageAngularVelocity[i] =
+            fstate.averageAngularVelocity[i] =
                 currentAngularVelocity[i] * (1.0f - avgCoeff) +
-                fsa.averageAngularVelocity[i] * avgCoeff;
+                fstate.averageAngularVelocity[i] * avgCoeff;
 
-            // fsa.averageAngularVelocity[i] = std::conj(filterCoeff[i]);
+            // fstate.averageAngularVelocity[i] = std::conj(filterCoeff[i]);
         }
 
-        if(newState.disableFrequencyTracking){
-            fsa.averageAngularVelocity = filterCoeff;
-            for(auto &i : fsa.averageAngularVelocity) i = std::conj(i);
+        if(state.disableFrequencyTracking){
+            fstate.averageAngularVelocity = filterCoeff;
+            for(auto &i : fstate.averageAngularVelocity) i = std::conj(i);
         }
 
-        if(newState.disablePhaseAveraging){
-            fsa.averageFilterPhases = fsa.currentFilterPhases;
+        if(state.disablePhaseAveraging){
+            fstate.averageFilterPhases = fstate.currentFilterPhases;
         }
     }
 
     lock.enter();
-    fstate = fsa;
+    processorFstate = fstate;
     lock.exit();
-
-    oldState = newState;
 }
 
 //==============================================================================

@@ -7,6 +7,7 @@
 
 struct State {
     vec3 targetPosition{10, 0, 0};
+    vec3 outTargetPosition{10, 0, 0};
     std::vector<vec3> micPositions;
 
     float mind = 1e-3f;
@@ -19,6 +20,7 @@ struct State {
     bool targetSine = false;
     float targetFrequency = 5000;
     float outVolumedB = -10.0f;
+    float nsr = 0.0f;
 
     bool disableFrequencyTracking = false;
     bool disablePhaseAveraging = false;
