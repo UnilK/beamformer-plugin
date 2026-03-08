@@ -14,7 +14,7 @@ struct State {
     float maxd = 100;
 
     float fps = 30.0f;
-    float frameDecayRate = 0.3f;
+    float frameDecayRate = 0.1f;
 
     bool targetNoise = true;
     bool targetSine = false;

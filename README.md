@@ -43,6 +43,7 @@ To make the computations feasible on a regular CPU, the following approach was d
 3. Use the angular velocity to average the phase of the frequency band over time. Use a leaky integrator for the averaging and calibrate it so that the average is representative of the one-frame time-frame when we visualize the beampatterns.
 4. Also average the angular velocities over time.
 5. Conver the average angular velocities to wavenumbers, and use them for beamforming with the averaged filter phases.
+6. Normalize the main lobe width with regard to the filter frequency: assume the main lobe is a normal distribution, then raise it to a suitable power so that the main lobes have a fixed standard deviation.
 
 With this, the processing of the filter is O(fs * microphones * filters) with a very good constant coefficient,
 while the beamforming is O(sampled_directions * microphones * filters).
@@ -67,4 +68,4 @@ Once the environment is ready, run the notebooks in your chosen host.
 
 ## Next steps
 
-- The implementation does not currently account for the frequency dependent main lobe width. Use a pure sine in the beamformer to see this in action. Windowing for the high frequencies and some postprocessing for the low frequencies is needed.
+- 
