@@ -85,14 +85,16 @@ std::vector<float> beamform(
 
         if(nmin >= nmax) continue;
 
-        float invConvIdx = PIF / fstate.micAngularFrequencies[filter];
+        float invConvIdx = PIF / -std::arg(fstate.averageAngularVelocity[filter]);
         invConvIdx = invConvIdx * invConvIdx;
 
         float irange = 1.0f / nmax;
         for(int i=0; i<dirs; i++){
             energyPattern[i] += std::pow((std::norm(energyLayer[i])) * irange, invConvIdx) * nmax;
         }
-    }
+
+        std::cout << -std::arg(fstate.averageAngularVelocity[filter]) * fstate.fs / (2 * PIF) << ' ';
+    } std::cout << '\n';
 
     float nmin = 1e18f;
     float nmax = -1.0f;

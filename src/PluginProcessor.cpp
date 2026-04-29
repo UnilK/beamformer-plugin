@@ -306,8 +306,6 @@ void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
             fstate.averageAngularVelocity[i] =
                 currentAngularVelocity[i] * (1.0f - avgCoeff) +
                 fstate.averageAngularVelocity[i] * avgCoeff;
-
-            // fstate.averageAngularVelocity[i] = std::conj(filterCoeff[i]);
         }
 
         if(state.disableFrequencyTracking){
